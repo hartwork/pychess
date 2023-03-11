@@ -141,6 +141,7 @@ class GameList(Gtk.TreeView):
         self.records = []
         records, plys = self.persp.chessfile.get_records(direction)
         for i, rec in enumerate(records):
+            rec = rec._asdict()
             game_id = rec["Id"]
             offs = rec["Offset"]
             wname = rec["White"]

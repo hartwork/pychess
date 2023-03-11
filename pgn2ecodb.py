@@ -56,6 +56,7 @@ if __name__ == '__main__':
         plyMax = 0
         old_eco = ""
         for rec in records:
+            rec = rec._asdict()
             model = cf.loadToModel(rec)
             eco = '' if rec['ECO'] is None else rec['ECO']
             entry = {'h': [],                                               # Hashes

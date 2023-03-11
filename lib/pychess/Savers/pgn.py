@@ -677,7 +677,8 @@ class PGNFile(ChessFile):
         records = self.tag_database.get_records(self.last_seen[-1], self.limit)
 
         if records:
-            self.last_seen.append((records[-1][col2label[self.order_col]], records[-1]["Offset"]))
+            last_record = records[-1]._asdict()
+            self.last_seen.append((last_record[col2label[self.order_col]], last_record["Offset"]))
             return records, self.offs_ply
         else:
             return [], {}
@@ -710,6 +711,9 @@ class PGNFile(ChessFile):
         if self.pgn_is_string:
             rec = self.games[0]
 
+        if not isinstance(rec, dict):
+            rec = rec._asdict()
+
         # Load mandatory tags
         for tag in mandatory_tags:
             model.tags[tag] = rec[tag]
@@ -726,6 +730,7 @@ class PGNFile(ChessFile):
             model.info = self.tag_database.get_info(rec)
             extra_tags = self.tag_database.get_exta_tags(rec)
             for et in extra_tags:
+                et = et._asdict()
                 model.tags[et['tag_name']] = et['tag_value']
 
         if self.pgn_is_string:
@@ -1071,6 +1076,8 @@ class PGNFile(ChessFile):
         return boards  # , status
 
     def get_movetext(self, rec):
+        if not isinstance(rec, dict):
+            rec = rec._asdict()
         self.handle.seek(rec["Offset"])
         in_comment = False
         lines = []
