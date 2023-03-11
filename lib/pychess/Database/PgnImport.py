@@ -202,7 +202,7 @@ class PgnImport():
 
             # use transaction to avoid autocommit slowness
             # and to let undo importing (rollback) if self.cancel was set
-            trans = self.conn.begin()
+            trans = self.conn.begin_nested()
             try:
                 i = 0
                 for tags in read_games(handle):
