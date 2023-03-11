@@ -78,7 +78,8 @@ SCHEMA_VERSION = "20180221"
 
 
 def get_schema_version(engine):
-    return engine.execute(select([schema_version.c.version])).scalar()
+    with engine.connect() as connection:
+        return connection.execute(select(schema_version.c.version)).scalar()
 
 
 def get_engine(path=None, dialect="sqlite", echo=False):

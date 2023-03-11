@@ -8,7 +8,7 @@ from pychess.Database import model as dbmodel
 from pychess.Database.model import game, event, site, player, pl1, pl2, annotator, source, tag_game
 
 
-count_games = select([func.count()]).select_from(game)
+count_games = select(func.count()).select_from(game)
 
 
 def parseDateTag(tag):
@@ -64,7 +64,7 @@ def save(path, model, offset, flip=False):
         if not name:
             return None
 
-        selection = select([table.c.id], table.c.name == name)
+        selection = select(table.c.id, table.c.name == name)
         result = conn.execute(selection)
         id_ = result.scalar()
         if id_ is None:
@@ -146,18 +146,19 @@ class TagDatabase:
 
         self.cols = [col.label(col2label[col]) for col in col2label]
 
-        self.from_obj = [
+        self.from_obj = (
             game.outerjoin(pl1, game.c.white_id == pl1.c.id)
             .outerjoin(pl2, game.c.black_id == pl2.c.id)
             .outerjoin(event, game.c.event_id == event.c.id)
             .outerjoin(site, game.c.site_id == site.c.id)
-            .outerjoin(annotator, game.c.annotator_id == annotator.c.id)]
+            .outerjoin(annotator, game.c.annotator_id == annotator.c.id))
 
-        self.select = select(self.cols, from_obj=self.from_obj)
+        self.select = select(*self.cols).select_from(self.from_obj)
 
-        self.select_offsets = select([game.c.offset, ], from_obj=self.from_obj)
+        self.select_offsets = select(game.c.offset).select_from(self.from_obj)
 
-        self.colnames = self.engine.execute(self.select).keys()
+        with self.engine.connect() as connection:
+            self.colnames = connection.execute(self.select).keys()
 
         self.query = self.select
         self.order_cols = (game.c.offset, game.c.offset)
@@ -167,7 +168,8 @@ class TagDatabase:
         self.where_offs8 = None
 
     def get_count(self):
-        return self.engine.execute(count_games).scalar()
+        with self.engine.connect() as connection:
+            return connection.execute(count_games).scalar()
     count = property(get_count)
 
     def close(self):
@@ -289,21 +291,23 @@ class TagDatabase:
                                               self.order_cols[1] > last_seen[1]))
                                      ).order_by(*self.order_cols).limit(limit)
 
-        # log.debug(self.engine.execute(Explain(query)).fetchall(), extra={"task": "SQL"})
-
-        result = self.engine.execute(query)
-        records = result.fetchall()
+        with self.engine.connect() as connection:
+            # log.debug(connection.execute(Explain(query)).fetchall(), extra={"task": "SQL"})
+            result = connection.execute(query)
+            records = result.fetchall()
 
         return records
 
     def get_offsets_for_tags(self, last_seen):
         query = self.select_offsets.where(self.where_tags).where(game.c.offset > last_seen[1])
-        result = self.engine.execute(query)
+        with self.engine.connect() as connection:
+            result = connection.execute(query)
         return [rec[0] for rec in result.fetchall()]
 
     def get_info(self, rec):
         where = and_(game.c.source_id == source.c.id, game.c.id == rec["Id"])
-        result = self.engine.execute(select([source.c.info]).where(where)).first()
+        with self.engine.connect() as connection:
+            result = connection.execute(select(source.c.info).where(where)).first()
 
         if result is None:
             return None
@@ -311,4 +315,5 @@ class TagDatabase:
             return result[0]
 
     def get_exta_tags(self, rec):
-        return self.engine.execute(select([tag_game]).where(tag_game.c.game_id == rec["Id"]))
+        with self.engine.connect() as connection:
+            return connection.execute(select(tag_game).where(tag_game.c.game_id == rec["Id"]))

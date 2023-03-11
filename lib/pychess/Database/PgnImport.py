@@ -57,7 +57,7 @@ class PgnImport():
         self.conn = self.engine.connect()
         self.CHUNK = 1000
 
-        self.count_source = select([func.count()]).select_from(source)
+        self.count_source = select(func.count()).select_from(source)
 
         self.ins_event = event.insert()
         self.ins_site = site.insert()
@@ -117,7 +117,7 @@ class PgnImport():
 
     def ini_names(self, name_table, field):
         if field != GAME and field != STAT:
-            s = select([name_table])
+            s = select(name_table)
             name_dict = dict([(n.name.title().translate(removeDic), n.id)
                               for n in self.conn.execute(s)])
 
@@ -132,7 +132,7 @@ class PgnImport():
             elif field == SOURCE:
                 self.source_dict = name_dict
 
-        s = select([func.max(name_table.c.id).label('maxid')])
+        s = select(func.max(name_table.c.id).label('maxid'))
         maxid = self.conn.execute(s).scalar()
         if maxid is None:
             next_id = 1
