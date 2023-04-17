@@ -15,10 +15,12 @@ on:
 
 jobs:
   run-tests:
-    name: Run the test suite
+    name: "Run the test suite (Python ${{ matrix.python-version }}, SQLalchemy ${{ matrix.sqlalchemy-major-version }}.x.x)"
     strategy:
+      fail-fast: false
       matrix:
         python-version: [3.7, 3.11]  # no particular need for in-between versions
+        sqlalchemy-major-version: [1, 2]
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
@@ -56,6 +58,9 @@ jobs:
         pip3 install -U pip setuptools wheel
         pip3 install -r requirements.txt
         diff -u0 requirements.txt <(pip3 freeze)  # enforces complete pinning
+        if [[ ${{ matrix.sqlalchemy-major-version }} = 1 ]]; then
+            pip3 install 'SQLAlchemy<2'  # i.e. downgrade
+        fi
 
         time PYTHONPATH=lib python3 pgn2ecodb.py
         time PYTHONPATH=lib python3 create_theme_preview.py
